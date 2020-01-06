@@ -1,1 +1,1 @@
-this is a sci-kit learning project
+tumor diameter prediction using linear regression
