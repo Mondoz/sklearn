@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -64,28 +67,41 @@ X = X.join(lnstation_dummy_train)
 train['Lnnumbers'] = train['Lnnumbers'].map(lnnumber_cat)
 lnnumber_dummy_train = pd.get_dummies(train['Lnnumbers'],prefix='Lnnumbers')
 X = X.join(lnnumber_dummy_train)
+
+print(X.shape)
+X_new = VarianceThreshold(threshold=(.8 * (1 - .8))).fit_transform(X)
+print('remove low variance ', X_new.shape)
+fit = SelectKBest(chi2, k=8).fit(X,y)
+dfscores = pd.DataFrame(fit.scores_)
+dfcol = pd.DataFrame(X.columns)
+featureScores = pd.concat([dfcol, dfscores], axis=1)
+featureScores.columns = ['Specs', 'Score']
+print(featureScores.nlargest(10,'Score'))
+X_new = SelectKBest(chi2, k=8).fit_transform(X_new,y)
+print('select k related ',X_new.shape)
+
 # X = StandardScaler().fit_transform(X)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=23)
-print(np.array(X.iloc[0]))
-
-names = ['dt','nn','knn', "lsvm", "svm",'rf','gp','nb','ada']
-classifiers = [tree.DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=4, min_samples_leaf=6),
-                MLPClassifier(alpha=0.0001, max_iter=3000, activation='relu', solver='adam'),
-               KNeighborsClassifier(3),
-               SVC(kernel="linear", C=0.025),
-               SVC(gamma=2, C=1),
-               RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-               GaussianProcessClassifier(1.0 * RBF(1.0)),
-               GaussianNB(),
-               AdaBoostClassifier(),
-            ]
-
-for name, clf in zip(names,classifiers):
-    clf.fit(X_train, y_train)
-    score = clf.score(X_test, y_test)
-    result = clf.predict(X_test)
-    auc = roc_auc_score(np.array(y_test), result)
-    print(name + ' ' + str(score) + ' auc ' + str(auc))
+# X_train, X_test, y_train, y_test = train_test_split(X_new, y, test_size=0.25, random_state=23)
+# print(np.array(X.iloc[0]))
+#
+# names = ['dt','nn','knn', "lsvm", "svm",'rf','gp','nb','ada']
+# classifiers = [tree.DecisionTreeClassifier(criterion='gini', splitter='best', max_depth=4, min_samples_leaf=6),
+#                 MLPClassifier(alpha=0.0001, max_iter=3000, activation='relu', solver='adam'),
+#                KNeighborsClassifier(3),
+#                SVC(kernel="linear", C=0.025),
+#                SVC(gamma=2, C=1),
+#                RandomForestClassifier(max_depth=5, n_estimators=30, max_features=1),
+#                GaussianProcessClassifier(1.0 * RBF(1.0)),
+#                GaussianNB(),
+#                AdaBoostClassifier()
+#             ]
+#
+# for name, clf in zip(names,classifiers):
+#     clf.fit(X_train, y_train)
+#     score = clf.score(X_test, y_test)
+#     result = clf.predict(X_test)
+#     auc = roc_auc_score(np.array(y_test), result)
+#     print(name + ' ' + str(score) + ' auc ' + str(auc))
 
 
 
